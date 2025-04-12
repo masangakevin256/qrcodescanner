@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR code generator</title>
+    <style>
+        :root{
+            --primary-color:#2196f3;
+            --secondary-color:#607D8B;
+            --background-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        body{
+            font-family: 'Segoe UI', Tahoma , Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: var(--background-gradient);
+        }
+        .container{
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            transition: transform 0.3s ease;
+        }
+        .container:hover{
+            transform: translateY(-5px);
+        }
+        h2{
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+        .input-group{
+            margin-bottom: 1.5rem;
+        }
+        label{
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+        input[type="url"],
+        input[type="number"]{
+            width: 90%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            border-radius: 5px;
+            
+        }
+        input[type="url"]:focus,
+        input[type="number"]:focus{
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        button{
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+
+        }
+       button:hover{
+        background: #1976D2;
+        box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+       }
+       #qrcode{
+        margin: 2rem 0;
+        text-align: center;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background: #f8f9fa;
+       }
+       .error{
+        color: #d32f2f;
+        margin: 1rem 0;
+        padding: 0.8rem;
+        background: #ffebee;
+        border-radius: 0.5rem;
+        display: none;
+
+       }
+       .download-btn{
+        display: none;
+        margin-top: 1rem;
+        background:  #4CAF50;
+       }
+       .download-btn:hover{
+        background: #38BE3C;
+       }
+       .popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            animation: fadeInOut 2.5s ease-in-out;
+            opacity: 0;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; top: 10px; }
+            20% { opacity: 1; top: 20px; }
+            80% { opacity: 1; top: 20px; }
+            100% { opacity: 0; top: 10px; }
+        }
+       @media (max-width: 480px){
+        .container{
+            padding: 1.5rem;
+        }
+        h2{
+            font-size: 1.5rem;
+        }
+       }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>QR code generator</h2>
+        <div class="input-group">
+            <label for="data">Enter URL</label>
+            <input type="url" id="data" placeholder="https://example.com" required>
+        </div>
+        <div class="input-group">
+            <label for="size">QR code size (100-500)</label>
+            <input type="number" id="size" value="200" min="100" max="500">
+        </div>
+        <button onclick="generateQrcode()">Generate QR code</button>
+        <div id="qrcode"></div>
+        <button class="download-btn" onclick="downloadQr()" id="downloadBtn">Download QR code</button>
+        <div class="error" id="error"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+        function generateQrcode(){
+            const qrContainer=document.getElementById("qrcode");
+            const errorElement=document.getElementById("error");
+            const downloadBtn=document.getElementById("downloadBtn");
+
+            qrContainer.innerHTML='';
+            errorElement.style.display="none";
+            downloadBtn.style.display="none";
+
+            const dataInput=document.getElementById("data").value.trim();
+            const size=parseInt(document.getElementById("size").value);
+
+            //check if the user has input url
+            if(!dataInput){
+                showError("Please enter a valid URL");
+                return;
+            }
+            if(!isValidHttpsUrl(dataInput)){
+                showError("Please enter a valid url like HTTP/HTTPS !");
+                return;
+            }
+            if(isNaN(size) || size <100 || size >500){
+                showError('Size must be between 100 and 500');
+                return;
+            }
+            
+            try {
+                new QRCode(qrContainer, {
+                    text: encodeURI(dataInput),
+                    width: size,
+                    height: size,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                
+                // Show download button after successful generation
+                downloadBtn.style.display = "block";
+            } catch(e) {
+                console.error('QR generation Error:', e);
+                showError('Failed to generate QR. Try a shorter URL !');
+            }
+        }
+        
+        function isValidHttpsUrl(string){
+            try{
+                const url=new URL(string);
+                return url.protocol==='http:' || url.protocol==='https:';
+            }catch(_){
+                return false;
+            }
+        }
+        
+        function showError(message){
+            const errorElement=document.getElementById("error");
+            errorElement.style.display='block';
+            errorElement.textContent= message;
+        }
+        
+        function downloadQr(){
+            const canvas = document.querySelector("#qrcode canvas");
+            if(!canvas){
+                showError("No QR to download!");
+                return;
+            }
+            
+            // Create a temporary link
+            const link = document.createElement('a');
+            link.download = 'qrcode.png';
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show success popup
+            showPopup();
+        }
+        
+        function showPopup() {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.innerHTML = '✅ QR code downloaded successfully!';
+            popup.style.animation = 'fadeInOut 2.5s ease-in-out';
+            document.body.appendChild(popup);
+            
+            // Remove popup after animation
+            setTimeout(() => {
+                popup.remove();
+            }, 2500);
+        }
+        
+        // Add enter key support
+        document.getElementById("data").addEventListener("keypress", (e) => {
+            if(e.key === 'Enter') generateQrcode();
+        });
+    </script>
+</body>
+</html>
